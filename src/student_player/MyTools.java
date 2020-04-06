@@ -11,7 +11,7 @@ public class MyTools {
 	public static final int[][] hiddenPos = { { originPos + 7, originPos - 2 }, { originPos + 7, originPos },
 			{ originPos + 7, originPos + 2 } };
 	public static final String[] badTileIdx = { "1", "2", "3", "4", "2_flip", "3_flip", "4_flip", "11", "11_flip", "13",
-			"13_flip", "14", "15" };
+			"13_flip", "14", "14_flip", "15" };
 
 	public static HashMap<Integer, List<SaboteurMove>> map = new HashMap<Integer, List<SaboteurMove>>();
 	public static HashSet<String> set = new HashSet<String>();
@@ -66,7 +66,7 @@ public class MyTools {
 		SaboteurCard card = move.getCardPlayed();
 		if (card instanceof SaboteurMap) {
 			if (getNuggetIndex(sbs) == -1) {
-				value = value * 50;
+				value = value * 100;
 			} else {
 				value = 100;
 			}
@@ -99,7 +99,12 @@ public class MyTools {
 			} else {
 				// if playing the current card will get us closer to the nugget:
 				int newDist = getNewDistanceFromNuggetIfMovePlayed(sbs, move);
+				System.out.println(
+						"getNewDistanceFromNuggetIfMovePlayed: " + newDist + " " + move.getCardPlayed().getName());
 				int disCurrentMovePos = getDistanceFromMovePosToNugget(sbs, move);
+				System.out.println("getDistanceFromMovePosToNugget: " + disCurrentMovePos);
+				System.out.println(move.getPosPlayed()[0] + " " + move.getPosPlayed()[1]);
+				System.out.println("");
 				if (newDist == Integer.MAX_VALUE || disCurrentMovePos == Integer.MAX_VALUE)
 					value = 0;
 				else {
@@ -223,71 +228,9 @@ public class MyTools {
 		if (!set.contains(tile.getIdx())) {
 			int[] movePos = move.getPosPlayed();
 			// left
-			if (path[0][1] == 1 && movePos[0] - 1 >= 0) {
-				int touchIndex = touchesHiddenObjective(movePos[0] - 1, movePos[1]);
-				if (board[movePos[0] - 1][movePos[1]] == null) {
-					// dis = Math.min(dis, getDistanceFromNugget(movePos[0] - 1, movePos[1],
-					// nuggetIndex));
-//					int[][] visited = new int[BOARD_SIZE][BOARD_SIZE];
-//					dis = Math.min(dis, getShortestPathFromNugget(board, visited, movePos[0] - 1, movePos[1],
-//							nuggetIndex, Integer.MAX_VALUE, 0));
-					dis = Math.min(dis, getShortestPathFromNugget(board, movePos[0] - 1, movePos[1], nuggetIndex));
-
-				} else if (touchIndex > -1) {
-					if (touchIndex == nuggetIndex)
-						dis = Math.min(dis, 0);
-					else {
-						dis = Math.min(dis, 1 + 2 * Math.abs(touchIndex - nuggetIndex));
-					}
-				}
-			}
-			// down
-			if (path[1][0] == 1 && movePos[1] + 1 < BOARD_SIZE) {
-				int touchIndex = touchesHiddenObjective(movePos[0], movePos[1] + 1);
-				if (board[movePos[0]][movePos[1] + 1] == null) {
-					// dis = Math.min(dis, getDistanceFromNugget(movePos[0], movePos[1] + 1,
-					// nuggetIndex));
-//					int[][] visited = new int[BOARD_SIZE][BOARD_SIZE];
-//					dis = Math.min(dis, getShortestPathFromNugget(board, visited, movePos[0], movePos[1] + 1,
-//							nuggetIndex, Integer.MAX_VALUE, 0));
-					dis = Math.min(dis, getShortestPathFromNugget(board, movePos[0], movePos[1] + 1, nuggetIndex));
-
-				} else if (touchIndex > -1) {
-					if (touchIndex == nuggetIndex)
-						dis = Math.min(dis, 0);
-					else {
-						dis = Math.min(dis, 1 + 2 * Math.abs(touchIndex - nuggetIndex));
-					}
-				}
-			}
-			// right
-			if (path[2][1] == 1 && movePos[0] + 1 < BOARD_SIZE) {
-				int touchIndex = touchesHiddenObjective(movePos[0] + 1, movePos[1]);
-				if (board[movePos[0] + 1][movePos[1]] == null) {
-					// dis = Math.min(dis, getDistanceFromNugget(movePos[0] + 1, movePos[1],
-					// nuggetIndex));
-//					int[][] visited = new int[BOARD_SIZE][BOARD_SIZE];
-//					dis = Math.min(dis, getShortestPathFromNugget(board, visited, movePos[0] + 1, movePos[1],
-//							nuggetIndex, Integer.MAX_VALUE, 0));
-					dis = Math.min(dis, getShortestPathFromNugget(board, movePos[0] + 1, movePos[1], nuggetIndex));
-
-				} else if (touchIndex > -1) {
-					if (touchIndex == nuggetIndex)
-						dis = Math.min(dis, 0);
-					else {
-						dis = Math.min(dis, 1 + 2 * Math.abs(touchIndex - nuggetIndex));
-					}
-				}
-			}
-			// up
-			if (path[1][2] == 1 && movePos[1] - 1 >= 0) {
+			if (path[0][1] == 1 && movePos[1] - 1 >= 0) {
 				int touchIndex = touchesHiddenObjective(movePos[0], movePos[1] - 1);
 				if (board[movePos[0]][movePos[1] - 1] == null) {
-					// dis = Math.min(dis, getDistanceFromNugget(movePos[0], movePos[1] - 1,
-					// nuggetIndex));
-//					int[][] visited = new int[BOARD_SIZE][BOARD_SIZE];
-//					dis = Math.min(dis, getShortestPathFromNugget(board, visited, movePos[0], movePos[1] - 1,
-//							nuggetIndex, Integer.MAX_VALUE, 0));
 					dis = Math.min(dis, getShortestPathFromNugget(board, movePos[0], movePos[1] - 1, nuggetIndex));
 				} else if (touchIndex > -1) {
 					if (touchIndex == nuggetIndex)
@@ -297,10 +240,44 @@ public class MyTools {
 					}
 				}
 			}
-		}
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-
+			// down
+			if (path[1][0] == 1 && movePos[0] + 1 < BOARD_SIZE) {
+				int touchIndex = touchesHiddenObjective(movePos[0] + 1, movePos[1]);
+				if (board[movePos[0] + 1][movePos[1]] == null) {
+					dis = Math.min(dis, getShortestPathFromNugget(board, movePos[0] + 1, movePos[1], nuggetIndex));
+				} else if (touchIndex > -1) {
+					if (touchIndex == nuggetIndex)
+						dis = Math.min(dis, 0);
+					else {
+						dis = Math.min(dis, 1 + 2 * Math.abs(touchIndex - nuggetIndex));
+					}
+				}
+			}
+			// right
+			if (path[2][1] == 1 && movePos[1] + 1 < BOARD_SIZE) {
+				int touchIndex = touchesHiddenObjective(movePos[0], movePos[1] + 1);
+				if (board[movePos[0]][movePos[1] + 1] == null) {
+					dis = Math.min(dis, getShortestPathFromNugget(board, movePos[0], movePos[1] + 1, nuggetIndex));
+				} else if (touchIndex > -1) {
+					if (touchIndex == nuggetIndex)
+						dis = Math.min(dis, 0);
+					else {
+						dis = Math.min(dis, 1 + 2 * Math.abs(touchIndex - nuggetIndex));
+					}
+				}
+			}
+			// up
+			if (path[1][2] == 1 && movePos[0] - 1 >= 0) {
+				int touchIndex = touchesHiddenObjective(movePos[0] - 1, movePos[1]);
+				if (board[movePos[0] - 1][movePos[1]] == null) {
+					dis = Math.min(dis, getShortestPathFromNugget(board, movePos[0] - 1, movePos[1], nuggetIndex));
+				} else if (touchIndex > -1) {
+					if (touchIndex == nuggetIndex)
+						dis = Math.min(dis, 0);
+					else {
+						dis = Math.min(dis, 1 + 2 * Math.abs(touchIndex - nuggetIndex));
+					}
+				}
 			}
 		}
 		return dis;
