@@ -10,7 +10,8 @@ public class MyTools {
 	public static final int originPos = 5;
 	public static final int[][] hiddenPos = { { originPos + 7, originPos - 2 }, { originPos + 7, originPos },
 			{ originPos + 7, originPos + 2 } };
-	public static final String[] badTileIdx = { "1", "2", "3", "4", "2_flip", "3_flip", "4_flip" };
+	public static final String[] badTileIdx = { "1", "2", "3", "4", "2_flip", "3_flip", "4_flip", "11", "11_flip", "13",
+			"13_flip", "14", "15" };
 
 	public static HashMap<Integer, List<SaboteurMove>> map = new HashMap<Integer, List<SaboteurMove>>();
 	public static HashSet<String> set = new HashSet<String>();
@@ -90,14 +91,21 @@ public class MyTools {
 			int currentShortestDistance = getShortestDistanceOfAllTilesFromNugget(sbs);
 			value += (BOARD_SIZE * BOARD_SIZE - currentShortestDistance) * 30;
 		} else if (card instanceof SaboteurTile) {
-			// if playing the current card will get us closer to the nugget:
-			int newDist = getNewDistanceFromNuggetIfMovePlayed(sbs, move);
-			int disCurrentMovePos = getDistanceFromMovePosToNugget(sbs, move);
-			if (newDist == Integer.MAX_VALUE || disCurrentMovePos == Integer.MAX_VALUE)
-				value = 0;
-			else {
-				value += 500 * (BOARD_SIZE * BOARD_SIZE - newDist);
-				value += 2000 * (disCurrentMovePos - newDist);
+			// if there is no path from the origin to the tile we want to play, don't play
+			// it.
+			if (!isConnectedFromOrigin(sbs.getHiddenBoard(), move)) {
+				value = value * 0.5;
+				System.out.println("disconnected: " + move.getPosPlayed()[0] + " " + move.getPosPlayed()[1]);
+			} else {
+				// if playing the current card will get us closer to the nugget:
+				int newDist = getNewDistanceFromNuggetIfMovePlayed(sbs, move);
+				int disCurrentMovePos = getDistanceFromMovePosToNugget(sbs, move);
+				if (newDist == Integer.MAX_VALUE || disCurrentMovePos == Integer.MAX_VALUE)
+					value = 0;
+				else {
+					value += 500 * (BOARD_SIZE * BOARD_SIZE - newDist);
+					value += 2000 * (disCurrentMovePos - newDist);
+				}
 			}
 		} else if (card instanceof SaboteurDestroy) {
 			SaboteurTile[][] board = sbs.getHiddenBoard();
@@ -105,7 +113,7 @@ public class MyTools {
 			int y = move.getPosPlayed()[1];
 			SaboteurTile tile = board[x][y];
 			if (set.contains(tile.getIdx())) {
-				value = value * 5;
+				value = value * 8;
 			} else if (tile.getIdx().contains("8")) {
 				value = value * 0.5;
 			} else {
@@ -139,7 +147,7 @@ public class MyTools {
 			} else if (cardToDrop instanceof SaboteurTile) {
 				String idx = ((SaboteurTile) cardToDrop).getIdx();
 				if (set.contains(idx)) {
-					value = value * 3;
+					value = value * 4;
 				} else if (idx.contains("8")) {
 					value = value * 0.5;
 				} else {
@@ -214,6 +222,7 @@ public class MyTools {
 		SaboteurTile[][] board = sbs.getHiddenBoard();
 		if (!set.contains(tile.getIdx())) {
 			int[] movePos = move.getPosPlayed();
+			// left
 			if (path[0][1] == 1 && movePos[0] - 1 >= 0) {
 				int touchIndex = touchesHiddenObjective(movePos[0] - 1, movePos[1]);
 				if (board[movePos[0] - 1][movePos[1]] == null) {
@@ -232,6 +241,7 @@ public class MyTools {
 					}
 				}
 			}
+			// down
 			if (path[1][0] == 1 && movePos[1] + 1 < BOARD_SIZE) {
 				int touchIndex = touchesHiddenObjective(movePos[0], movePos[1] + 1);
 				if (board[movePos[0]][movePos[1] + 1] == null) {
@@ -250,6 +260,7 @@ public class MyTools {
 					}
 				}
 			}
+			// right
 			if (path[2][1] == 1 && movePos[0] + 1 < BOARD_SIZE) {
 				int touchIndex = touchesHiddenObjective(movePos[0] + 1, movePos[1]);
 				if (board[movePos[0] + 1][movePos[1]] == null) {
@@ -268,6 +279,7 @@ public class MyTools {
 					}
 				}
 			}
+			// up
 			if (path[1][2] == 1 && movePos[1] - 1 >= 0) {
 				int touchIndex = touchesHiddenObjective(movePos[0], movePos[1] - 1);
 				if (board[movePos[0]][movePos[1] - 1] == null) {
@@ -360,9 +372,60 @@ public class MyTools {
 		return minDis;
 	}
 
+	public static boolean isConnectedFromOrigin(SaboteurTile[][] board, SaboteurMove move) {
+		int row[] = { -1, 0, 0, 1 };
+		int col[] = { 0, -1, 1, 0 };
+		int[] pos = move.getPosPlayed();
+		List<int[]> neighbours = new ArrayList<int[]>();
+		for (int k = 0; k < 4; k++) {
+			int x = pos[0] + row[k];
+			int y = pos[1] + col[k];
+			if (x >= 0 && y >= 0 && x < BOARD_SIZE && y < BOARD_SIZE) {
+				if (board[x][y] != null && !set.contains(board[x][y].getIdx())) {
+					int[] coor = { x, y };
+					neighbours.add(coor);
+				}
+			}
+		}
+		boolean[][] visited = new boolean[BOARD_SIZE][BOARD_SIZE];
+		Queue<Node> q = new ArrayDeque<Node>();
+		int i = originPos;
+		int j = originPos;
+		visited[i][j] = true;
+		q.add(new Node(i, j, 0));
+
+//		int minDis = Integer.MAX_VALUE;
+		for (int[] coor : neighbours) {
+			while (!q.isEmpty()) {
+				Node node = q.poll();
+				i = node.x;
+				j = node.y;
+//				int dis = node.dist;
+
+				if (coor[0] == i && coor[1] == j) {
+//					minDis = dis;
+					return true;
+				}
+
+				for (int k = 0; k < 4; k++) {
+					if (isAConnectedTile(board, visited, i + row[k], j + col[k])) {
+						visited[i + row[k]][j + col[k]] = true;
+						q.add(new Node(i + row[k], j + col[k], 0));
+					}
+				}
+			}
+		}
+		return false;
+	}
+
 	public static boolean isValid(SaboteurTile[][] board, boolean visited[][], int x, int y) {
 		return (x < BOARD_SIZE && y < BOARD_SIZE && x >= 0 && y >= 0 && !visited[x][y]
 				&& (board[x][y] == null || touchesHiddenObjective(x, y) > -1));
+	}
+
+	public static boolean isAConnectedTile(SaboteurTile[][] board, boolean visited[][], int x, int y) {
+		return (x < BOARD_SIZE && y < BOARD_SIZE && x >= 0 && y >= 0 && !visited[x][y] && board[x][y] != null
+				&& !set.contains(board[x][y].getIdx()));
 	}
 
 //	public static boolean isValid(int x, int y) {
