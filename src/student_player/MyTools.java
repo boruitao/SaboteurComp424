@@ -62,7 +62,15 @@ public class MyTools {
 				return -MAX_VALUE;
 			}
 		}
-
+		int countBadTilesAtHand = 0;
+		for (SaboteurCard card : sbs.getCurrentPlayerCards()) {
+			if (card instanceof SaboteurTile) {
+				SaboteurTile tile = (SaboteurTile) card;
+				if (set.contains(tile.getIdx())) {
+					countBadTilesAtHand++;
+				}
+			}
+		}
 		double value = 1000;
 		SaboteurCard card = move.getCardPlayed();
 		if (card instanceof SaboteurMap) {
@@ -81,21 +89,21 @@ public class MyTools {
 		} else if (card instanceof SaboteurMalus) {
 			// if we cannot play a tile card
 			if (!map.containsKey(5)) {
-				value = value * 5;
+				value = value * 30;
 			}
 			// the larger the turn number, the more likely we play this card
 			int turnNumber = sbs.getTurnNumber();
-			value += (100 - turnNumber) * 30;
+			value += turnNumber * 1300;
 
 			// the closer the current tile to the nugget, the more likely we play this card
 			// to freeze the opponent
 			int currentShortestDistance = getShortestDistanceOfAllTilesFromNugget(sbs);
-			value += (BOARD_SIZE * BOARD_SIZE - currentShortestDistance) * 30;
+			value += (BOARD_SIZE * BOARD_SIZE - currentShortestDistance) * 150;
 		} else if (card instanceof SaboteurTile) {
 			// if there is no path from the origin to the tile we want to play, don't play
 			// it.
 			if (!isConnectedFromOrigin(sbs.getHiddenBoard(), move)) {
-				value = value * 0.5;
+				value = value * 30;
 				System.out.println("disconnected: " + move.getPosPlayed()[0] + " " + move.getPosPlayed()[1]);
 			} else {
 				// if playing the current card will get us closer to the nugget:
@@ -108,11 +116,12 @@ public class MyTools {
 				System.out.println("getDistanceFromMovePosToNugget: " + distFromCardMovePos);
 				System.out.println("currentShortestDist: " + currentShortestDist);
 				System.out.println(move.getPosPlayed()[0] + " " + move.getPosPlayed()[1]);
+				// if we can never reach the nugget by playing this move, don't play it
 				if (newDistAfterPlayingCard == Integer.MAX_VALUE || distFromCardMovePos == Integer.MAX_VALUE)
-					value = 0;
+					value = value * 10;
 				else {
-					value += 500 * (BOARD_SIZE * BOARD_SIZE - newDistAfterPlayingCard);
-					value += 2000 * (distFromCardMovePos - newDistAfterPlayingCard + currentShortestDist
+					value += 320 * (BOARD_SIZE * BOARD_SIZE - newDistAfterPlayingCard);
+					value += 1000 * (distFromCardMovePos - newDistAfterPlayingCard + currentShortestDist
 							- newDistAfterPlayingCard);
 				}
 			}
@@ -122,11 +131,11 @@ public class MyTools {
 			int y = move.getPosPlayed()[1];
 			SaboteurTile tile = board[x][y];
 			if (set.contains(tile.getIdx())) {
-				value = value * 8;
+				value = value * 40;
 			} else if (tile.getIdx().contains("8")) {
-				value = value * 0.5;
+				value = value * 10;
 			} else {
-				value = value * 1.2;
+				value = value * 15;
 			}
 		} else if (card instanceof SaboteurDrop) {
 			// drop
@@ -138,9 +147,9 @@ public class MyTools {
 				else
 					value = value * 20;
 			} else if (cardToDrop instanceof SaboteurDestroy) {
-				value = value * 2;
+				value = value * 20;
 			} else if (cardToDrop instanceof SaboteurMalus) {
-				value = value * 1.5;
+				value = value * 10;
 			} else if (cardToDrop instanceof SaboteurBonus) {
 				int count = 0;
 				for (SaboteurCard cardInHand : sbs.getCurrentPlayerCards()) {
@@ -149,18 +158,22 @@ public class MyTools {
 					}
 				}
 				if (count > 1) {
-					value = value * 3;
+					value = value * 20;
 				} else {
-					value = value * 1.5;
+					value = value * 4;
 				}
 			} else if (cardToDrop instanceof SaboteurTile) {
 				String idx = ((SaboteurTile) cardToDrop).getIdx();
 				if (set.contains(idx)) {
-					value = value * 4;
+					if (countBadTilesAtHand >= 5) {
+						value = value * 30;
+					} else {
+						value = value * 20;
+					}
 				} else if (idx.contains("8")) {
-					value = value * 0.5;
+					value = value * 10;
 				} else {
-					value = value * 2;
+					value = value * 15;
 				}
 			}
 		}
