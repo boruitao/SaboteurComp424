@@ -5,9 +5,10 @@ import Saboteur.cardClasses.*;
 import java.util.*;
 
 public class MyTools {
-	public static final int BOARD_SIZE = 14;
-	public static final int MAX_VALUE = 100000;
-	public static final int originPos = 5;
+	private static final int BOARD_SIZE = 14;
+	private static final int MAX_VALUE = 100000;
+	private static final int originPos = 5;
+	private static boolean[] hiddenRevealed = { false, false, false };
 	public static final int[][] hiddenPos = { { originPos + 7, originPos - 2 }, { originPos + 7, originPos },
 			{ originPos + 7, originPos + 2 } };
 	public static final String[] badTileIdx = { "1", "2", "3", "4", "2_flip", "3_flip", "4_flip", "11", "11_flip", "13",
@@ -73,7 +74,7 @@ public class MyTools {
 		} else if (card instanceof SaboteurBonus) {
 			// if we are frozen we must play this card
 			if (!map.containsKey(5)) {
-				value = value * 40;
+				value = value * 90;
 			} else {
 				value = 0;
 			}
@@ -98,18 +99,21 @@ public class MyTools {
 				System.out.println("disconnected: " + move.getPosPlayed()[0] + " " + move.getPosPlayed()[1]);
 			} else {
 				// if playing the current card will get us closer to the nugget:
-				int newDist = getNewDistanceFromNuggetIfMovePlayed(sbs, move);
-				System.out.println(
-						"getNewDistanceFromNuggetIfMovePlayed: " + newDist + " " + move.getCardPlayed().getName());
-				int disCurrentMovePos = getDistanceFromMovePosToNugget(sbs, move);
-				System.out.println("getDistanceFromMovePosToNugget: " + disCurrentMovePos);
-				System.out.println(move.getPosPlayed()[0] + " " + move.getPosPlayed()[1]);
+				int newDistAfterPlayingCard = getNewDistanceFromNuggetIfMovePlayed(sbs, move);
+				int distFromCardMovePos = getDistanceFromMovePosToNugget(sbs, move);
+				int currentShortestDist = getShortestDistanceOfAllTilesFromNugget(sbs);
 				System.out.println("");
-				if (newDist == Integer.MAX_VALUE || disCurrentMovePos == Integer.MAX_VALUE)
+				System.out.println("getNewDistanceFromNuggetIfMovePlayed: " + newDistAfterPlayingCard + " "
+						+ move.getCardPlayed().getName());
+				System.out.println("getDistanceFromMovePosToNugget: " + distFromCardMovePos);
+				System.out.println("currentShortestDist: " + currentShortestDist);
+				System.out.println(move.getPosPlayed()[0] + " " + move.getPosPlayed()[1]);
+				if (newDistAfterPlayingCard == Integer.MAX_VALUE || distFromCardMovePos == Integer.MAX_VALUE)
 					value = 0;
 				else {
-					value += 500 * (BOARD_SIZE * BOARD_SIZE - newDist);
-					value += 2000 * (disCurrentMovePos - newDist);
+					value += 500 * (BOARD_SIZE * BOARD_SIZE - newDistAfterPlayingCard);
+					value += 2000 * (distFromCardMovePos - newDistAfterPlayingCard + currentShortestDist
+							- newDistAfterPlayingCard);
 				}
 			}
 		} else if (card instanceof SaboteurDestroy) {
@@ -167,9 +171,12 @@ public class MyTools {
 		int countFound = 0;
 		for (int i = 0; i < 3; i++) {
 			if (sbs.getHiddenBoard()[hiddenPos[i][0]][hiddenPos[i][1]].getIdx().equals("nugget")) {
+				hiddenRevealed[i] = true;
+				System.out.println("Hidden tile revealed! " + i);
 				return i;
 			} else if (sbs.getHiddenBoard()[hiddenPos[i][0]][hiddenPos[i][1]].getIdx().equals("hidden1")
 					|| sbs.getHiddenBoard()[hiddenPos[i][0]][hiddenPos[i][1]].getIdx().equals("hidden2")) {
+				hiddenRevealed[i] = true;
 				countFound++;
 			}
 		}
@@ -183,19 +190,25 @@ public class MyTools {
 		return -1;
 	}
 
+	public static int getDefaultNuggetIndex() {
+		if (!hiddenRevealed[1])
+			return 1;
+		else if (!hiddenRevealed[2])
+			return 2;
+		else
+			return 0;
+	}
+
 	public static int getShortestDistanceOfAllTilesFromNugget(SaboteurBoardState sbs) {
 		int nuggetIndex = getNuggetIndex(sbs);
 		int dis = Integer.MAX_VALUE;
 		if (nuggetIndex == -1) {
-			nuggetIndex = 1;
+			nuggetIndex = getDefaultNuggetIndex();
 		}
 		// form a new "8" tile and see where it can be placed
 		SaboteurTile dummy = new SaboteurTile("8");
 		for (int[] pos : sbs.possiblePositions(dummy)) {
 			if (pos.length == 2) {
-//				int[][] visited = new int[BOARD_SIZE][BOARD_SIZE];
-//				dis = Math.min(dis, getShortestPathFromNugget(sbs.getHiddenBoard(), visited, pos[0], pos[1],
-//						nuggetIndex, Integer.MAX_VALUE, 0));
 				dis = Math.min(dis, getShortestPathFromNugget(sbs.getHiddenBoard(), pos[0], pos[1], nuggetIndex));
 			}
 		}
@@ -205,12 +218,10 @@ public class MyTools {
 	public static int getDistanceFromMovePosToNugget(SaboteurBoardState sbs, SaboteurMove move) {
 		int nuggetIndex = getNuggetIndex(sbs);
 		if (nuggetIndex == -1) {
-			nuggetIndex = 1;
+			nuggetIndex = getDefaultNuggetIndex();
 		}
-//		int[][] visited = new int[BOARD_SIZE][BOARD_SIZE];
 		int[] movePos = move.getPosPlayed();
-//		int dis = getShortestPathFromNugget(sbs.getHiddenBoard(), visited, movePos[0], movePos[1], nuggetIndex,
-//				Integer.MAX_VALUE, 0);
+		;
 		int dis = getShortestPathFromNugget(sbs.getHiddenBoard(), movePos[0], movePos[1], nuggetIndex);
 
 		return dis;
@@ -220,7 +231,7 @@ public class MyTools {
 		int nuggetIndex = getNuggetIndex(sbs);
 		int dis = Integer.MAX_VALUE;
 		if (nuggetIndex == -1) {
-			nuggetIndex = 1;
+			nuggetIndex = getDefaultNuggetIndex();
 		}
 		SaboteurTile tile = (SaboteurTile) move.getCardPlayed();
 		int[][] path = tile.getPath();
