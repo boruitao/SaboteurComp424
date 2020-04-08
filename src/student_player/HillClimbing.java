@@ -8,7 +8,7 @@ public class HillClimbing {
 	public static Move getOptimalMove(SaboteurBoardState sbs) {
 		double bestValue = Double.MIN_VALUE;
 		List<SaboteurMove> listOfMoves = new ArrayList<SaboteurMove>();
-		MyTools.populateHashMap(sbs);
+		MyTools.initializeAgent(sbs);
 		for (SaboteurMove move : sbs.getAllLegalMoves()) {
 			double value = MyTools.evaluate(move, sbs, sbs.getTurnPlayer());
 			System.out.println("Move : " + move.getCardPlayed().getName() + " value: " + value);
