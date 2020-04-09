@@ -78,8 +78,16 @@ public class MyTools {
 		SaboteurTile[][] board = sbs.getHiddenBoard();
 		SaboteurCard card = move.getCardPlayed();
 		if (card instanceof SaboteurMap) {
-			if (getNuggetIndex(sbs) == -1) {
-				value = value * 100;
+			int i = getNuggetIndex(sbs);
+			if (i == -1) {
+				int[] pos = move.getPosPlayed();
+				if (!hiddenRevealed[1] && pos[1] == hiddenPos[1][1] && pos[0] == hiddenPos[1][0]) {
+					value = value * 140;
+				} else if (!hiddenRevealed[2] && pos[1] == hiddenPos[2][1] && pos[0] == hiddenPos[2][0]) {
+					value = value * 120;
+				} else if (!hiddenRevealed[0] && pos[1] == hiddenPos[0][1] && pos[0] == hiddenPos[0][0]) {
+					value = value * 100;
+				}
 			} else {
 				value = 100;
 			}
@@ -114,13 +122,6 @@ public class MyTools {
 				int newDistAfterPlayingCard = getNewDistanceFromNuggetIfMovePlayed(sbs, move);
 				int distFromCardMovePos = getDistanceFromMovePosToNugget(sbs, move);
 				int currentShortestDist = getShortestDistanceOfAllTilesFromNugget(sbs, board);
-
-				System.out.println("");
-				System.out.println("getNewDistanceFromNuggetIfMovePlayed: " + newDistAfterPlayingCard + " "
-						+ move.getCardPlayed().getName());
-				System.out.println("getDistanceFromMovePosToNugget: " + distFromCardMovePos);
-				System.out.println("currentShortestDist: " + currentShortestDist);
-				System.out.println(move.getPosPlayed()[0] + " " + move.getPosPlayed()[1]);
 
 				double valueGain = value * 9;
 				if (newDistAfterPlayingCard != Integer.MAX_VALUE && distFromCardMovePos != Integer.MAX_VALUE) {
@@ -165,7 +166,7 @@ public class MyTools {
 				if (getNuggetIndex(sbs) == -1)
 					value = value * 4;
 				else
-					value = value * 20;
+					value = value * 50;
 			} else if (cardToDrop instanceof SaboteurDestroy) {
 				value = value * 20;
 			} else if (cardToDrop instanceof SaboteurMalus) {
@@ -186,7 +187,7 @@ public class MyTools {
 				String idx = ((SaboteurTile) cardToDrop).getIdx();
 				if (badTileSet.contains(idx)) {
 					if (countBadTilesAtHand >= 5) {
-						value = value * 30;
+						value = value * 50;
 					} else {
 						value = value * 20;
 					}
@@ -200,15 +201,19 @@ public class MyTools {
 		return value;
 	}
 
+	/**
+	 * This method checks if we already know the location of nugget. If not, it
+	 * returns -1.
+	 */
 	public static int getNuggetIndex(SaboteurBoardState sbs) {
 		int countFound = 0;
 		for (int i = 0; i < 3; i++) {
-			if (sbs.getHiddenBoard()[hiddenPos[i][0]][hiddenPos[i][1]].getIdx().equals("nugget")) {
+			String idx = sbs.getHiddenBoard()[hiddenPos[i][0]][hiddenPos[i][1]].getIdx();
+			if (idx.equals("nugget")) {
 				hiddenRevealed[i] = true;
 				System.out.println("Hidden tile revealed! " + i);
 				return i;
-			} else if (sbs.getHiddenBoard()[hiddenPos[i][0]][hiddenPos[i][1]].getIdx().equals("hidden1")
-					|| sbs.getHiddenBoard()[hiddenPos[i][0]][hiddenPos[i][1]].getIdx().equals("hidden2")) {
+			} else if (idx.equals("hidden1") || idx.equals("hidden2")) {
 				hiddenRevealed[i] = true;
 				countFound++;
 			}
@@ -232,6 +237,9 @@ public class MyTools {
 			return 0;
 	}
 
+	/**
+	 * Returns the path length from the nugget to the closest tile on the board.
+	 */
 	public static int getShortestDistanceOfAllTilesFromNugget(SaboteurBoardState sbs, SaboteurTile[][] board) {
 		int nuggetIndex = getNuggetIndex(sbs);
 		int dis = Integer.MAX_VALUE;
@@ -250,12 +258,14 @@ public class MyTools {
 			}
 		}
 		for (int num : intSet) {
-			System.out.println(num % 10 + " " + num / 10 + " ");
 			dis = Math.min(dis, getShortestPathFromNugget(board, num % 10, num / 10, nuggetIndex));
 		}
 		return dis;
 	}
 
+	/**
+	 * Returns the path length from the nugget to the position we are going to play.
+	 */
 	public static int getDistanceFromMovePosToNugget(SaboteurBoardState sbs, SaboteurMove move) {
 		int nuggetIndex = getNuggetIndex(sbs);
 		if (nuggetIndex == -1) {
@@ -268,6 +278,10 @@ public class MyTools {
 		return dis;
 	}
 
+	/**
+	 * Returns the number of tiles which are next to the tile for the current move.
+	 * It is used to determine whether playing this move would fix a hole.
+	 */
 	public static int getNumOfNeighbours(SaboteurTile[][] board, SaboteurMove move) {
 		SaboteurTile tile = (SaboteurTile) move.getCardPlayed();
 		int[][] path = tile.getPath();
@@ -302,6 +316,10 @@ public class MyTools {
 		return count;
 	}
 
+	/**
+	 * Returns the path length from the nugget to the position of the new move if we
+	 * play it.
+	 */
 	public static int getNewDistanceFromNuggetIfMovePlayed(SaboteurBoardState sbs, SaboteurMove move) {
 		int nuggetIndex = getNuggetIndex(sbs);
 		int dis = Integer.MAX_VALUE;

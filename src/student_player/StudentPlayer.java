@@ -26,14 +26,8 @@ public class StudentPlayer extends SaboteurPlayer {
 		// You probably will make separate functions in MyTools.
 		// For example, maybe you'll need to load some pre-processed best opening
 		// strategies...
-
-//        // Is random the best you can do?
-//        Move myMove = boardState.getRandomMove();
-		long start = System.currentTimeMillis();
 		Move myMove = HillClimbing.getOptimalMove(boardState);
 		// Return your move to be processed by the server.
-		long elapsedTimeMillis = System.currentTimeMillis() - start;
-		System.out.println("############## Total time: " + elapsedTimeMillis / 1000F);
 		return myMove;
 	}
 }
